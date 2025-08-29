@@ -2,21 +2,29 @@ package com.user.model;
 
 import java.util.UUID;
 
+import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Entity
+@Table(name = "users")
 public class User {
-	private UUID id;
 
-    @NotBlank(message = "Name is required")
+    @Id
+    private String id;
+
+    @NotBlank
     private String name;
 
-    @Email(message = "Invalid email format")
+    @Email
+    @Column(unique = true)
     private String email;
 
-    @Positive(message = "Age must be positive")
+    @Positive
     private int age;
+
+    public User() {
+        this.id = UUID.randomUUID().toString();
+    }
 }

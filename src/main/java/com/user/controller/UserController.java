@@ -6,77 +6,67 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import com.user.model.User;
+import com.user.repository.UserRepository;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-	private final Map<UUID, User> userStore = new HashMap<>();
+	private final UserRepository userRepository;
+
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     // CREATE
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Name is required");
-        }
-        if (user.getEmail() == null || !user.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid email");
-        }
-        if (user.getAge() <= 0) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Age must be positive");
-        }
-
-        UUID id = UUID.randomUUID();
-        user.setId(id);
-        userStore.put(id, user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    public ResponseEntity<?> createUser(@RequestBody @Valid User user) {
+    	User savedUser = userRepository.save(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
     // READ ALL
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(new ArrayList<>(userStore.values()));
+    public List<User> getAllUsers() {
+    	return userRepository.findAll();
     }
 
     // READ ONE
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable UUID id) {
-        User user = userStore.get(id);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+    public ResponseEntity<?> getUserById(@PathVariable String id) {
+    	Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            return ResponseEntity.ok(userOpt.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("User not found");
         }
-        return ResponseEntity.ok(user);
     }
 
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable UUID id, @RequestBody User updatedUser) {
-        User existingUser = userStore.get(id);
-        if (existingUser == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+    public ResponseEntity<?> updateUser(@PathVariable String id, @RequestBody User updatedUser) {
+    	Optional<User> optionalUser = userRepository.findById(id);
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+            if (updatedUser.getName() != null) user.setName(updatedUser.getName());
+            if (updatedUser.getEmail() != null) user.setEmail(updatedUser.getEmail());
+            if (updatedUser.getAge() > 0) user.setAge(updatedUser.getAge());
+            userRepository.save(user);
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body("User not found");
         }
-
-        if (updatedUser.getName() != null && !updatedUser.getName().isBlank()) {
-            existingUser.setName(updatedUser.getName());
-        }
-        if (updatedUser.getEmail() != null &&
-                updatedUser.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            existingUser.setEmail(updatedUser.getEmail());
-        }
-        if (updatedUser.getAge() > 0) {
-            existingUser.setAge(updatedUser.getAge());
-        }
-
-        userStore.put(id, existingUser);
-        return ResponseEntity.ok(existingUser);
     }
 
     // DELETE
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
-        User removedUser = userStore.remove(id);
-        if (removedUser == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteUser(@PathVariable String id) {
+    	return userRepository.findById(id).map(user -> {
+            userRepository.delete(user);
+            return ResponseEntity.noContent().build();
+        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"));
     }
 }

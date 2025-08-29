@@ -31,3 +31,18 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Ignore environment variables
+.env
+
+# Ignore IDE files
+.idea/
+.vscode/
+
+# Ignore build output
+target/
+out/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
