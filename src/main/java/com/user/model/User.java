@@ -1,7 +1,5 @@
 package com.user.model;
 
-import java.util.UUID;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -12,19 +10,21 @@ import lombok.*;
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "CHAR(36)")
     private String id;
 
-    @NotBlank
     private String name;
 
     @Email
-    @Column(unique = true)
+    @Column(unique = true, nullable=false)
     private String email;
 
+    private String password; // hashed password
+
+    @Enumerated(EnumType.STRING)
+    private Role role; // ADMIN, USER, OWNER
+    
     @Positive
     private int age;
-
-    public User() {
-        this.id = UUID.randomUUID().toString();
-    }
 }

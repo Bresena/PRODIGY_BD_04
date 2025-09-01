@@ -3,6 +3,8 @@ package com.user.controller;
 import java.util.*;
 
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.user.model.User;
@@ -27,6 +29,7 @@ public class UserController {
     }
 
     // READ ALL
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('OWNER')")
     @GetMapping
     public List<User> getAllUsers() {
     	return userRepository.findAll();
@@ -62,11 +65,20 @@ public class UserController {
     }
 
     // DELETE
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('OWNER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable String id) {
     	return userRepository.findById(id).map(user -> {
             userRepository.delete(user);
             return ResponseEntity.noContent().build();
         }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"));
+    }
+    // profile of current user
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication auth) {
+        return userRepository.findByEmail(auth.getName())
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"));
     }
 }
